@@ -16,9 +16,10 @@
   - Files: `backend/main.py`, `backend/job_store.py`
   - Completed: 2026-03-25 — JobStore (thread-safe in-memory event queue), POST /generate (202 + background task), GET /status (SSE polling generator); 11 integration tests green; bandit clean
 
-- [ ] Task 3: Implement PDF text extraction (P0)
+- [x] Task 3: Implement PDF text extraction (P0)
   - Acceptance: Given any PDF upload, extracts clean full text preserving section structure (headings, paragraphs); handles multi-column layouts; returns plain string
   - Files: `backend/pdf_parser.py`
+  - Completed: 2026-03-25 — pdfplumber-based extraction; accepts bytes or file-like; validates PDF header; normalises whitespace; 6 unit tests green; bandit clean
 
 - [ ] Task 4: Build the gpt-5.4 prompt and two-phase OpenAI call (P0)
   - Acceptance:
