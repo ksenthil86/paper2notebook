@@ -40,7 +40,7 @@
   - Files: `backend/main.py`, `backend/pipeline.py`
   - Completed: 2026-03-25 — pipeline.run_pipeline() executes all phases synchronously in thread pool; main.py uses run_in_executor to keep event loop free; done event carries notebook_b64; any exception → error event; 9 integration tests green; bandit clean
 
-- [ ] Task 7: Build the arcprize.org-inspired frontend UI — form + progress panel (P0)
+- [x] Task 7: Build the arcprize.org-inspired frontend UI — form + progress panel (P0)
   - Acceptance:
     - Single-page layout, max-width 680px, centered
     - Dark theme: bg `#0a0a0b`, surface `#111113`, accent `#e8c547`, fonts: Inter + JetBrains Mono (via Google Fonts)
@@ -48,6 +48,7 @@
     - Progress panel: replaces form after submit; shows each phase as a list item with animated spinner → checkmark on completion; displays the human-readable message next to each phase
     - Clean hover states, focus rings, button transitions
   - Files: `frontend/src/App.jsx`, `frontend/src/App.css`, `frontend/index.html` (Google Fonts link)
+  - Completed: 2026-03-25 — Full arcprize.org-inspired dark theme UI; form card with password input, collapsible GitHub token, PDF drag-and-drop zone, disabled generate button; progress panel (replaces form on submit); 12 E2E Playwright tests green; npm audit 0 vulns; fixed playwright testDir path (was ../../ should be ../); added NODE_PATH=node_modules to test:e2e script; upgraded @playwright/test to 1.58.2 to resolve CVE
 
 - [ ] Task 8: Wire frontend to backend — SSE streaming + download + Open in Colab (P0)
   - Acceptance:
