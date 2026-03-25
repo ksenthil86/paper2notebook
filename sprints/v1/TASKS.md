@@ -11,9 +11,10 @@
   - Files: `frontend/package.json`, `frontend/src/main.jsx`, `frontend/src/App.jsx`, `backend/main.py`, `backend/requirements.txt`, `.env.example`, `README.md`
   - Completed: 2026-03-25 — Scaffolded Vite 6 + React 18 frontend and FastAPI backend; fixed rollup darwin-x64 native binary issue (universal node binary runs x86_64 by default); 9 unit tests green; bandit clean; npm audit 0 vulns
 
-- [ ] Task 2: Build FastAPI backend with background job system and SSE endpoint (P0)
+- [x] Task 2: Build FastAPI backend with background job system and SSE endpoint (P0)
   - Acceptance: `POST /generate` accepts `multipart/form-data` (api_key, github_token?, pdf_file), starts a background job, returns `{job_id}` immediately; `GET /status/{job_id}` returns an SSE stream that emits `{"phase": "...", "message": "..."}` events; CORS enabled for localhost:5173
   - Files: `backend/main.py`, `backend/job_store.py`
+  - Completed: 2026-03-25 — JobStore (thread-safe in-memory event queue), POST /generate (202 + background task), GET /status (SSE polling generator); 11 integration tests green; bandit clean
 
 - [ ] Task 3: Implement PDF text extraction (P0)
   - Acceptance: Given any PDF upload, extracts clean full text preserving section structure (headings, paragraphs); handles multi-column layouts; returns plain string

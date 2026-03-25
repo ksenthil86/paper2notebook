@@ -1,6 +1,13 @@
 """Research Paper → Colab Notebook API."""
-from fastapi import FastAPI
+import json
+import asyncio
+from typing import AsyncGenerator
+
+from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+
+from job_store import get_store
 
 app = FastAPI(
     title="Paper2Notebook",
@@ -20,3 +27,88 @@ app.add_middleware(
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/generate", status_code=202)
+async def generate(
+    background_tasks: BackgroundTasks,
+    api_key: str = Form(...),
+    pdf_file: UploadFile = File(...),
+    github_token: str | None = Form(None),
+) -> dict:
+    """Accept a PDF + API key, start a background generation job, return job_id."""
+    store = get_store()
+    job_id = store.create_job()
+    pdf_bytes = await pdf_file.read()
+
+    background_tasks.add_task(
+        _run_placeholder_pipeline,
+        job_id=job_id,
+        pdf_bytes=pdf_bytes,
+        api_key=api_key,
+        github_token=github_token,
+    )
+
+    return {"job_id": job_id}
+
+
+async def _run_placeholder_pipeline(
+    job_id: str,
+    pdf_bytes: bytes,
+    api_key: str,
+    github_token: str | None,
+) -> None:
+    """Placeholder pipeline — emits SSE phases without real processing (Task 2 scope).
+    Full pipeline is wired in Task 6.
+    """
+    store = get_store()
+    store.emit(job_id, "parsing", "Parsing PDF and extracting text...")
+    await asyncio.sleep(0.05)
+    store.emit(job_id, "analyzing", "Identifying algorithms, methods, and key equations...")
+    await asyncio.sleep(0.05)
+    store.emit(job_id, "generating", "Generating implementation — this takes a moment with reasoning models...")
+    await asyncio.sleep(0.05)
+    store.emit(job_id, "assembling", "Assembling notebook cells...")
+    await asyncio.sleep(0.05)
+    if github_token:
+        store.emit(job_id, "uploading", "Uploading to GitHub Gist...")
+        await asyncio.sleep(0.05)
+    store.emit(job_id, "done", "Done! Your notebook is ready.")
+
+
+@app.get("/status/{job_id}")
+async def status(job_id: str) -> StreamingResponse:
+    """Stream SSE events for a job. Returns 404 if job_id is unknown."""
+    store = get_store()
+    if store.get_job(job_id) is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return StreamingResponse(
+        _sse_generator(job_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+async def _sse_generator(job_id: str) -> AsyncGenerator[str, None]:
+    """Yield SSE-formatted events until the 'done' or 'error' phase is emitted."""
+    store = get_store()
+    emitted_count = 0
+    max_wait_seconds = 300
+    waited = 0.0
+    poll_interval = 0.1
+
+    while waited < max_wait_seconds:
+        events = store.get_events(job_id)
+        while emitted_count < len(events):
+            event = events[emitted_count]
+            emitted_count += 1
+            yield f"data: {json.dumps(event)}\n\n"
+            if event.get("phase") in ("done", "error"):
+                return
+
+        await asyncio.sleep(poll_interval)
+        waited += poll_interval

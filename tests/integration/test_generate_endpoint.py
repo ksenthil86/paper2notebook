@@ -1,0 +1,168 @@
+"""Task 2 — Integration tests: POST /generate and GET /status/{job_id}."""
+import sys
+import os
+import io
+import json
+import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../backend"))
+
+import pytest
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def client():
+    from main import app
+    return TestClient(app)
+
+
+def _minimal_pdf_bytes() -> bytes:
+    """Return a minimal valid PDF as bytes (no external file needed)."""
+    pdf = b"""%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
+4 0 obj<</Length 44>>stream
+BT /F1 12 Tf 100 700 Td (Hello World) Tj ET
+endstream
+endobj
+5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
+xref
+0 6
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000274 00000 n
+0000000368 00000 n
+trailer<</Size 6/Root 1 0 R>>
+startxref
+441
+%%EOF"""
+    return pdf
+
+
+# ── /generate endpoint ──────────────────────────────────────────────────────
+
+class TestGenerateEndpoint:
+
+    def test_missing_api_key_returns_422(self, client):
+        """Request without api_key field returns 422 Unprocessable Entity."""
+        resp = client.post(
+            "/generate",
+            files={"pdf_file": ("test.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+        )
+        assert resp.status_code == 422
+
+    def test_missing_pdf_returns_422(self, client):
+        """Request without pdf_file field returns 422."""
+        resp = client.post("/generate", data={"api_key": "sk-test"})
+        assert resp.status_code == 422
+
+    def test_valid_request_returns_job_id(self, client):
+        """Valid request returns 202 with a job_id string."""
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+        )
+        assert resp.status_code == 202
+        body = resp.json()
+        assert "job_id" in body
+        assert isinstance(body["job_id"], str)
+        assert len(body["job_id"]) > 0
+
+    def test_optional_github_token_accepted(self, client):
+        """github_token is optional — request with it should still return 202."""
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test", "github_token": "ghp_test"},
+            files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+        )
+        assert resp.status_code == 202
+        assert "job_id" in resp.json()
+
+    def test_response_is_immediate(self, client):
+        """Response arrives quickly — job runs in background, not blocking."""
+        start = time.time()
+        client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+        )
+        elapsed = time.time() - start
+        assert elapsed < 2.0, f"Response took {elapsed:.2f}s — should be near-instant"
+
+
+# ── /status/{job_id} SSE endpoint ───────────────────────────────────────────
+
+class TestStatusEndpoint:
+
+    def _post_and_get_job_id(self, client) -> str:
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+        )
+        assert resp.status_code == 202
+        return resp.json()["job_id"]
+
+    def test_unknown_job_returns_404(self, client):
+        """GET /status/nonexistent returns 404."""
+        resp = client.get("/status/nonexistent-job-id")
+        assert resp.status_code == 404
+
+    def test_status_returns_sse_content_type(self, client):
+        """GET /status/{job_id} streams text/event-stream content."""
+        job_id = self._post_and_get_job_id(client)
+        with client.stream("GET", f"/status/{job_id}") as resp:
+            assert resp.status_code == 200
+            assert "text/event-stream" in resp.headers.get("content-type", "")
+
+    def test_sse_emits_valid_json_events(self, client):
+        """SSE stream emits at least one 'data: {...}' line with valid JSON."""
+        job_id = self._post_and_get_job_id(client)
+        events = []
+        with client.stream("GET", f"/status/{job_id}") as resp:
+            for line in resp.iter_lines():
+                if line.startswith("data:"):
+                    payload = line[len("data:"):].strip()
+                    data = json.loads(payload)
+                    events.append(data)
+                    if data.get("phase") in ("done", "error"):
+                        break
+
+        assert len(events) > 0, "No SSE events received"
+
+    def test_sse_events_have_required_fields(self, client):
+        """Each SSE event has 'phase' and 'message' keys."""
+        job_id = self._post_and_get_job_id(client)
+        with client.stream("GET", f"/status/{job_id}") as resp:
+            for line in resp.iter_lines():
+                if line.startswith("data:"):
+                    data = json.loads(line[len("data:"):].strip())
+                    assert "phase" in data, f"Missing 'phase' in event: {data}"
+                    assert "message" in data, f"Missing 'message' in event: {data}"
+                    if data["phase"] in ("done", "error"):
+                        break
+
+    def test_job_store_importable(self):
+        """job_store module is importable and has expected interface."""
+        from job_store import JobStore
+        store = JobStore()
+        job_id = store.create_job()
+        assert job_id is not None
+        job = store.get_job(job_id)
+        assert job is not None
+
+    def test_job_store_emit_and_read(self):
+        """JobStore.emit() queues an event; get_events() retrieves it."""
+        from job_store import JobStore
+        store = JobStore()
+        job_id = store.create_job()
+        store.emit(job_id, "parsing", "Parsing PDF...")
+        events = store.get_events(job_id)
+        assert len(events) >= 1
+        assert events[0]["phase"] == "parsing"
+        assert events[0]["message"] == "Parsing PDF..."
