@@ -21,13 +21,14 @@
   - Files: `backend/pdf_parser.py`
   - Completed: 2026-03-25 — pdfplumber-based extraction; accepts bytes or file-like; validates PDF header; normalises whitespace; 6 unit tests green; bandit clean
 
-- [ ] Task 4: Build the gpt-5.4 prompt and two-phase OpenAI call (P0)
+- [x] Task 4: Build the gpt-5.4 prompt and two-phase OpenAI call (P0)
   - Acceptance:
     - Phase 1 call: extracts paper title, authors, venue, list of algorithms/methods, key equations (LaTeX), and problem domain
     - Phase 2 call: generates the full notebook cell JSON array — each element has `{cell_type, source}` following the 7-section notebook structure in PRD (title → setup → imports → overview → per-algorithm: theory/impl/data/experiment/viz → comparison → discussion)
     - Prompt instructs model to use realistic synthetic data, type hints, docstrings, LaTeX math in markdown, production-quality Python
     - Falls back to `o3` → `gpt-4.1` if gpt-5.4 unavailable
   - Files: `backend/notebook_generator.py`
+  - Completed: 2026-03-25 — Two-phase generation: analyze_paper() (metadata extraction) + generate_cells() (full notebook cell JSON); MODEL_PREFERENCE fallback chain; markdown-fence stripping; 18 unit tests (all mocked); bandit clean
 
 - [ ] Task 5: Assemble `.ipynb` from cell JSON using nbformat (P0)
   - Acceptance: Given the cell JSON array from Task 4, produces a valid `.ipynb` (nbformat v4); first code cell is `!pip install ...`; markdown cells use nbformat markdown type; notebook passes `nbformat.validate()`; notebook opens in Colab without warnings
