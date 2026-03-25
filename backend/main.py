@@ -2,12 +2,16 @@
 import json
 import asyncio
 from typing import AsyncGenerator
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
+import pipeline as _pipeline
 from job_store import get_store
+
+_executor = ThreadPoolExecutor(max_workers=4)
 
 app = FastAPI(
     title="Paper2Notebook",
@@ -42,7 +46,7 @@ async def generate(
     pdf_bytes = await pdf_file.read()
 
     background_tasks.add_task(
-        _run_placeholder_pipeline,
+        _run_pipeline_in_thread,
         job_id=job_id,
         pdf_bytes=pdf_bytes,
         api_key=api_key,
@@ -52,28 +56,24 @@ async def generate(
     return {"job_id": job_id}
 
 
-async def _run_placeholder_pipeline(
+async def _run_pipeline_in_thread(
     job_id: str,
     pdf_bytes: bytes,
     api_key: str,
     github_token: str | None,
 ) -> None:
-    """Placeholder pipeline — emits SSE phases without real processing (Task 2 scope).
-    Full pipeline is wired in Task 6.
-    """
+    """Run the blocking pipeline in a thread pool so the event loop stays free."""
     store = get_store()
-    store.emit(job_id, "parsing", "Parsing PDF and extracting text...")
-    await asyncio.sleep(0.05)
-    store.emit(job_id, "analyzing", "Identifying algorithms, methods, and key equations...")
-    await asyncio.sleep(0.05)
-    store.emit(job_id, "generating", "Generating implementation — this takes a moment with reasoning models...")
-    await asyncio.sleep(0.05)
-    store.emit(job_id, "assembling", "Assembling notebook cells...")
-    await asyncio.sleep(0.05)
-    if github_token:
-        store.emit(job_id, "uploading", "Uploading to GitHub Gist...")
-        await asyncio.sleep(0.05)
-    store.emit(job_id, "done", "Done! Your notebook is ready.")
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(
+        _executor,
+        _pipeline.run_pipeline,
+        job_id,
+        store,
+        pdf_bytes,
+        api_key,
+        github_token,
+    )
 
 
 @app.get("/status/{job_id}")

@@ -35,9 +35,10 @@
   - Files: `backend/notebook_builder.py`
   - Completed: 2026-03-25 — build_notebook() produces nbformat v4 bytes; python3 kernelspec + colab metadata; auto-injects pip install cell when absent; nbformat.validate() passes; 15 unit tests green; bandit clean
 
-- [ ] Task 6: Wire background job pipeline and SSE events (P0)
+- [x] Task 6: Wire background job pipeline and SSE events (P0)
   - Acceptance: Full pipeline runs as background job — pdf_parser → notebook_generator (phase 1) → notebook_generator (phase 2) → notebook_builder; each phase emits an SSE event with phase name + human-readable message; final SSE event includes base64-encoded notebook content; errors emit `{phase: "error", message: "..."}` and close the stream
   - Files: `backend/main.py`, `backend/pipeline.py`
+  - Completed: 2026-03-25 — pipeline.run_pipeline() executes all phases synchronously in thread pool; main.py uses run_in_executor to keep event loop free; done event carries notebook_b64; any exception → error event; 9 integration tests green; bandit clean
 
 - [ ] Task 7: Build the arcprize.org-inspired frontend UI — form + progress panel (P0)
   - Acceptance:
