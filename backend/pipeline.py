@@ -10,6 +10,7 @@ from job_store import JobStore
 from pdf_parser import extract_text
 from notebook_generator import make_client, analyze_paper, generate_cells
 from notebook_builder import build_notebook
+from gist_uploader import upload_gist
 
 
 def run_pipeline(
@@ -61,13 +62,7 @@ def run_pipeline(
         colab_url: str | None = None
         if github_token:
             store.emit(job_id, "uploading", "Uploading to GitHub Gist...")
-            # Gist upload implemented in Task 9 (gist_uploader.py)
-            # Placeholder: colab_url remains None until Task 9
-            try:
-                from gist_uploader import upload_gist  # noqa: PLC0415
-                colab_url = upload_gist(nb_bytes, github_token)
-            except ImportError:
-                pass  # Task 9 not yet implemented
+            colab_url = upload_gist(nb_bytes, github_token)
 
         # ── Done ────────────────────────────────────────────────────────────
         notebook_b64 = base64.b64encode(nb_bytes).decode("ascii")

@@ -63,9 +63,10 @@
 
 ### P1 — Open in Colab + polish
 
-- [ ] Task 9: Implement GitHub Gist upload for Open in Colab (P1)
+- [x] Task 9: Implement GitHub Gist upload for Open in Colab (P1)
   - Acceptance: If `github_token` provided, pipeline uploads the `.ipynb` to a new public GitHub Gist via `api.github.com/gists`; extracts gist ID; constructs `https://colab.research.google.com/gist/{username}/{gist_id}` URL; includes `colab_url` in the `done` SSE event
   - Files: `backend/gist_uploader.py`, update `backend/pipeline.py`
+  - Completed: 2026-03-25 — `upload_gist(nb_bytes, github_token)` uses httpx to POST to GitHub Gist API (Bearer auth, public, application/vnd.github+json); returns `colab.research.google.com/gist/{username}/{gist_id}`; raises RuntimeError on non-2xx; pipeline.py updated to import directly (removed ImportError placeholder); 12 unit + 3 new integration tests green; bandit clean
 
 - [ ] Task 10: Write README with setup and usage instructions (P1)
   - Acceptance: README covers: prerequisites (Python 3.10+, Node 18+), install steps for backend and frontend, how to run both servers, how to use the app, what "Open in Colab" requires, model fallback note

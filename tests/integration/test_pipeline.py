@@ -106,8 +106,8 @@ class TestPipelineIntegration:
         from main import app
         return TestClient(app)
 
-    def _mock_all(self):
-        """Return a context-manager stack that mocks pdf_parser, notebook_generator, notebook_builder."""
+    def _mock_all(self, colab_url=None):
+        """Return a context-manager stack that mocks all external calls."""
         from notebook_builder import build_notebook
         fake_nb_bytes = build_notebook(_FAKE_CELLS)  # real nbformat bytes
 
@@ -116,12 +116,13 @@ class TestPipelineIntegration:
         p3 = patch("pipeline.analyze_paper", return_value=_FAKE_METADATA)
         p4 = patch("pipeline.generate_cells", return_value=_FAKE_CELLS)
         p5 = patch("pipeline.build_notebook", return_value=fake_nb_bytes)
-        return p1, p2, p3, p4, p5
+        p6 = patch("pipeline.upload_gist", return_value=colab_url)
+        return p1, p2, p3, p4, p5, p6
 
     def test_all_phases_emitted(self, client):
         """SSE stream must emit parsing, analyzing, generating, assembling, done phases."""
         patches = self._mock_all()
-        with patches[0], patches[1], patches[2], patches[3], patches[4]:
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5]:
             job_id = _post_generate(client)
             events = _drain_sse(client, job_id)
 
@@ -132,7 +133,7 @@ class TestPipelineIntegration:
     def test_done_event_has_notebook_b64(self, client):
         """The 'done' SSE event must include a base64-encoded notebook."""
         patches = self._mock_all()
-        with patches[0], patches[1], patches[2], patches[3], patches[4]:
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5]:
             job_id = _post_generate(client)
             events = _drain_sse(client, job_id)
 
@@ -176,7 +177,7 @@ class TestPipelineIntegration:
     def test_phases_emitted_in_order(self, client):
         """Phases must appear in: parsing → analyzing → generating → assembling → done."""
         patches = self._mock_all()
-        with patches[0], patches[1], patches[2], patches[3], patches[4]:
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5]:
             job_id = _post_generate(client)
             events = _drain_sse(client, job_id)
 
@@ -189,9 +190,40 @@ class TestPipelineIntegration:
     def test_main_uses_pipeline_not_placeholder(self, client):
         """POST /generate must invoke pipeline.run_pipeline, not the old placeholder."""
         patches = self._mock_all()
-        with patches[0], patches[1], patches[2], patches[3], patches[4]:
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5]:
             with patch("pipeline.run_pipeline", wraps=__import__("pipeline").run_pipeline) as spy:
                 job_id = _post_generate(client)
                 _drain_sse(client, job_id)
                 # run_pipeline should have been called
                 assert spy.call_count >= 1
+
+    def test_gist_upload_called_when_token_provided(self, client):
+        """When github_token is provided, upload_gist is called and colab_url appears in done event."""
+        colab_url = "https://colab.research.google.com/gist/testuser/abc123"
+        patches = self._mock_all(colab_url=colab_url)
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5] as mock_gist:
+            job_id = _post_generate(client, github_token="ghp_testtoken")
+            events = _drain_sse(client, job_id)
+
+        mock_gist.assert_called_once()
+        done = next(e for e in events if e["phase"] == "done")
+        assert done.get("colab_url") == colab_url
+
+    def test_gist_upload_not_called_without_token(self, client):
+        """When no github_token is provided, upload_gist must NOT be called."""
+        patches = self._mock_all()
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5] as mock_gist:
+            job_id = _post_generate(client)  # no github_token
+            _drain_sse(client, job_id)
+
+        mock_gist.assert_not_called()
+
+    def test_uploading_phase_emitted_with_token(self, client):
+        """When github_token is provided, the 'uploading' phase must appear in SSE."""
+        patches = self._mock_all(colab_url="https://colab.research.google.com/gist/u/id")
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5]:
+            job_id = _post_generate(client, github_token="ghp_testtoken")
+            events = _drain_sse(client, job_id)
+
+        phases = [e["phase"] for e in events]
+        assert "uploading" in phases, f"Expected 'uploading' phase, got: {phases}"
