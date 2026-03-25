@@ -76,8 +76,9 @@ Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Usage
 
-1. **OpenAI API Key** — paste your `sk-...` key into the API key field.
-   The key is sent directly to OpenAI from the backend and never stored.
+1. **Gemini API Key** — paste your `AIza...` key into the API key field.
+   Get one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+   The key is sent directly to Google from the backend and never stored.
 
 2. **PDF upload** — drag-and-drop a research paper PDF onto the drop zone, or click to browse.
 
@@ -109,11 +110,10 @@ The backend uploads the notebook as a public GitHub Gist, then constructs the Co
 
 The backend attempts models in this order:
 
-1. `gpt-5.4` *(primary — OpenAI reasoning model)*
-2. `o3` *(fallback)*
-3. `gpt-4.1` *(final fallback)*
+1. `gemini-2.5-pro` *(primary — Google's most capable reasoning model)*
+2. `gemini-2.0-flash` *(fallback)*
 
-If the primary model is unavailable on your API key the system automatically retries with the next model in the fallback chain.
+If the primary model is unavailable or rate-limited, the system automatically retries with the next model in the fallback chain.
 
 ---
 
@@ -121,7 +121,7 @@ If the primary model is unavailable on your API key the system automatically ret
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | Optional server-side default key (users can override in the UI) |
+| `GEMINI_API_KEY` | Optional server-side default key (users can override in the UI) |
 | `GITHUB_TOKEN` | Optional server-side GitHub token (users can override in the UI) |
 | `HOST` | Backend bind address (default `0.0.0.0`) |
 | `PORT` | Backend port (default `8000`) |

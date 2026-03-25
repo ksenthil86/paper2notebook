@@ -1,4 +1,4 @@
-"""Two-phase OpenAI notebook generation.
+"""Two-phase Gemini notebook generation.
 
 Phase 1 — analyze_paper(): extract structured metadata from the paper text.
 Phase 2 — generate_cells(): produce the full notebook cell JSON array.
@@ -7,10 +7,11 @@ import json
 import re
 from typing import Any
 
-import openai
+from google import genai
+from google.genai import types
 
-# Model preference order: try gpt-5.4 first, fall back if unavailable.
-MODEL_PREFERENCE: list[str] = ["gpt-5.4", "o3", "gpt-4.1"]
+# Model preference order: try gemini-2.5-pro first, fall back if unavailable.
+MODEL_PREFERENCE: list[str] = ["gemini-2.5-pro", "gemini-2.0-flash"]
 
 # ── Prompts ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ PAPER TEXT:
 
 _PHASE2_SYSTEM = """\
 You are a world-class ML researcher and engineer writing a PRODUCTION-QUALITY \
-Google Colab tutorial notebook for top researchers at companies like OpenAI and DeepMind.
+Google Colab tutorial notebook for top researchers at companies like Google and DeepMind.
 
 YOUR NOTEBOOK MUST:
 1. Be completely self-contained and runnable in Google Colab
@@ -119,21 +120,23 @@ def _strip_json_fences(text: str) -> str:
 
 
 def _call_with_fallback(
-    client: openai.OpenAI,
-    messages: list[dict],
-    response_format: str = "text",
+    client: genai.Client,
+    system_instruction: str,
+    user_message: str,
 ) -> str:
-    """Try MODEL_PREFERENCE in order; return the content string of the first success."""
+    """Try MODEL_PREFERENCE in order; return the text of the first success."""
     last_exc: Exception | None = None
     for model in MODEL_PREFERENCE:
         try:
-            kwargs: dict[str, Any] = {
-                "model": model,
-                "messages": messages,
-                "max_completion_tokens": 16000,
-            }
-            resp = client.chat.completions.create(**kwargs)
-            return resp.choices[0].message.content
+            response = client.models.generate_content(
+                model=model,
+                contents=user_message,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    max_output_tokens=16000,
+                ),
+            )
+            return response.text
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
             continue
@@ -144,30 +147,24 @@ def _call_with_fallback(
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def make_client(api_key: str) -> openai.OpenAI:
-    """Create and return an OpenAI client authenticated with *api_key*."""
-    return openai.OpenAI(api_key=api_key)
+def make_client(api_key: str) -> genai.Client:
+    """Create and return a Gemini client authenticated with *api_key*."""
+    return genai.Client(api_key=api_key)
 
 
-def analyze_paper(client: openai.OpenAI, paper_text: str) -> dict[str, Any]:
+def analyze_paper(client: genai.Client, paper_text: str) -> dict[str, Any]:
     """Phase 1: extract structured metadata from raw paper text.
 
     Args:
-        client: Authenticated OpenAI client.
+        client: Authenticated Gemini client.
         paper_text: Full extracted text of the research paper.
 
     Returns:
         dict with keys: title, authors, venue, domain, algorithms,
         key_equations, datasets_mentioned, dependencies.
     """
-    messages = [
-        {"role": "system", "content": _PHASE1_SYSTEM},
-        {
-            "role": "user",
-            "content": _PHASE1_USER.format(paper_text=paper_text[:120_000]),
-        },
-    ]
-    raw = _call_with_fallback(client, messages)
+    user_message = _PHASE1_USER.format(paper_text=paper_text[:120_000])
+    raw = _call_with_fallback(client, _PHASE1_SYSTEM, user_message)
     cleaned = _strip_json_fences(raw)
     try:
         return json.loads(cleaned)
@@ -176,31 +173,25 @@ def analyze_paper(client: openai.OpenAI, paper_text: str) -> dict[str, Any]:
 
 
 def generate_cells(
-    client: openai.OpenAI,
+    client: genai.Client,
     paper_text: str,
     metadata: dict[str, Any],
 ) -> list[dict[str, str]]:
     """Phase 2: generate the full notebook cell JSON array.
 
     Args:
-        client: Authenticated OpenAI client.
+        client: Authenticated Gemini client.
         paper_text: Full extracted text of the research paper.
         metadata: Structured metadata dict from analyze_paper().
 
     Returns:
         List of cell dicts, each with 'cell_type' and 'source' keys.
     """
-    messages = [
-        {"role": "system", "content": _PHASE2_SYSTEM},
-        {
-            "role": "user",
-            "content": _PHASE2_USER.format(
-                metadata_json=json.dumps(metadata, indent=2),
-                paper_text=paper_text[:80_000],
-            ),
-        },
-    ]
-    raw = _call_with_fallback(client, messages)
+    user_message = _PHASE2_USER.format(
+        metadata_json=json.dumps(metadata, indent=2),
+        paper_text=paper_text[:80_000],
+    )
+    raw = _call_with_fallback(client, _PHASE2_SYSTEM, user_message)
     cleaned = _strip_json_fences(raw)
     try:
         cells = json.loads(cleaned)
@@ -212,7 +203,7 @@ def generate_cells(
 
     # Validate and normalise each cell
     validated: list[dict[str, str]] = []
-    for i, cell in enumerate(cells):
+    for cell in cells:
         if not isinstance(cell, dict):
             continue
         cell_type = cell.get("cell_type", "code")

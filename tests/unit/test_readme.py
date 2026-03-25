@@ -50,9 +50,9 @@ def test_readme_has_frontend_run_instructions():
     assert "npm run dev" in content
 
 
-def test_readme_has_openai_api_key_info():
+def test_readme_has_api_key_info():
     content = _readme().lower()
-    assert "openai" in content
+    assert "gemini" in content
     assert "api key" in content
 
 

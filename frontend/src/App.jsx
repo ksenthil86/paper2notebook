@@ -130,14 +130,14 @@ export default function App() {
           {/* API key */}
           <div className="field-group">
             <label className="field-label" htmlFor="api-key-input">
-              OpenAI API Key
+              Gemini API Key
             </label>
             <input
               id="api-key-input"
               data-testid="api-key-input"
               type="password"
               className="input"
-              placeholder="sk-..."
+              placeholder="AIza..."
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               autoComplete="off"
