@@ -68,6 +68,7 @@
   - Files: `backend/gist_uploader.py`, update `backend/pipeline.py`
   - Completed: 2026-03-25 — `upload_gist(nb_bytes, github_token)` uses httpx to POST to GitHub Gist API (Bearer auth, public, application/vnd.github+json); returns `colab.research.google.com/gist/{username}/{gist_id}`; raises RuntimeError on non-2xx; pipeline.py updated to import directly (removed ImportError placeholder); 12 unit + 3 new integration tests green; bandit clean
 
-- [ ] Task 10: Write README with setup and usage instructions (P1)
+- [x] Task 10: Write README with setup and usage instructions (P1)
   - Acceptance: README covers: prerequisites (Python 3.10+, Node 18+), install steps for backend and frontend, how to run both servers, how to use the app, what "Open in Colab" requires, model fallback note
   - Files: `README.md`
+  - Completed: 2026-03-25 — Full README: prerequisites table (Python 3.10+, Node 18+), venv + pip install + npm install steps, uvicorn + npm run dev run instructions, 4-step usage guide, Open in Colab GitHub PAT instructions, model fallback chain (gpt-5.4 → o3 → gpt-4.1), .env variables table; 12 content-validation tests green
