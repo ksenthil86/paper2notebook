@@ -30,9 +30,10 @@
   - Files: `backend/notebook_generator.py`
   - Completed: 2026-03-25 — Two-phase generation: analyze_paper() (metadata extraction) + generate_cells() (full notebook cell JSON); MODEL_PREFERENCE fallback chain; markdown-fence stripping; 18 unit tests (all mocked); bandit clean
 
-- [ ] Task 5: Assemble `.ipynb` from cell JSON using nbformat (P0)
+- [x] Task 5: Assemble `.ipynb` from cell JSON using nbformat (P0)
   - Acceptance: Given the cell JSON array from Task 4, produces a valid `.ipynb` (nbformat v4); first code cell is `!pip install ...`; markdown cells use nbformat markdown type; notebook passes `nbformat.validate()`; notebook opens in Colab without warnings
   - Files: `backend/notebook_builder.py`
+  - Completed: 2026-03-25 — build_notebook() produces nbformat v4 bytes; python3 kernelspec + colab metadata; auto-injects pip install cell when absent; nbformat.validate() passes; 15 unit tests green; bandit clean
 
 - [ ] Task 6: Wire background job pipeline and SSE events (P0)
   - Acceptance: Full pipeline runs as background job — pdf_parser → notebook_generator (phase 1) → notebook_generator (phase 2) → notebook_builder; each phase emits an SSE event with phase name + human-readable message; final SSE event includes base64-encoded notebook content; errors emit `{phase: "error", message: "..."}` and close the stream
