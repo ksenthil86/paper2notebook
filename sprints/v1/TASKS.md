@@ -50,13 +50,14 @@
   - Files: `frontend/src/App.jsx`, `frontend/src/App.css`, `frontend/index.html` (Google Fonts link)
   - Completed: 2026-03-25 — Full arcprize.org-inspired dark theme UI; form card with password input, collapsible GitHub token, PDF drag-and-drop zone, disabled generate button; progress panel (replaces form on submit); 12 E2E Playwright tests green; npm audit 0 vulns; fixed playwright testDir path (was ../../ should be ../); added NODE_PATH=node_modules to test:e2e script; upgraded @playwright/test to 1.58.2 to resolve CVE
 
-- [ ] Task 8: Wire frontend to backend — SSE streaming + download + Open in Colab (P0)
+- [x] Task 8: Wire frontend to backend — SSE streaming + download + Open in Colab (P0)
   - Acceptance:
     - On submit: POST to `/generate`, get `job_id`, open `EventSource` to `/status/{job_id}`
     - Each SSE event updates the progress panel in real-time
     - On `done` event: decode base64 notebook, trigger browser download of `.ipynb`; if `colab_url` present in event, show "Open in Colab ↗" button linking to that URL in a new tab
     - On `error` event: show error message in red beneath progress panel; re-enable form
   - Files: `frontend/src/App.jsx`
+  - Completed: 2026-03-25 — Full SSE wiring in App.jsx (POST /generate → EventSource /status/{job_id} → progress panel → base64 decode + download); colab_url → Open in Colab link; error event → re-enables form; streamDone flag prevents onerror from firing after intentional close; 5 E2E tests green using JS-level EventSource mock (Playwright route.fulfill fires onerror before onmessage for SSE); npm audit 0 vulns
 
 ---
 

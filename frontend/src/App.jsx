@@ -68,11 +68,14 @@ export default function App() {
     }
 
     const es = new EventSource(`/status/${jobId}`)
+    let streamDone = false
+
     es.onmessage = (ev) => {
       const event = JSON.parse(ev.data)
       const { phase, message, notebook_b64, colab_url } = event
 
       if (phase === 'done') {
+        streamDone = true
         es.close()
         setProgress((prev) => [...(prev || []), { phase, message, done: true }])
         if (notebook_b64) {
@@ -90,6 +93,7 @@ export default function App() {
           setProgress((prev) => [...(prev || []), { phase: 'colab', colab_url }])
         }
       } else if (phase === 'error') {
+        streamDone = true
         es.close()
         setProgress(null)
         setError(message)
@@ -98,6 +102,8 @@ export default function App() {
       }
     }
     es.onerror = () => {
+      if (streamDone) return
+      streamDone = true
       es.close()
       setProgress(null)
       setError('Connection lost. Please try again.')
