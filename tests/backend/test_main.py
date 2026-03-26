@@ -32,10 +32,10 @@ def test_requirements_file_exists():
 
 
 def test_requirements_has_core_deps():
-    """requirements.txt includes fastapi, uvicorn, pdfplumber, openai, nbformat."""
+    """requirements.txt includes fastapi, uvicorn, pdfplumber, google-genai, nbformat."""
     req_path = os.path.join(os.path.dirname(__file__), "../../backend/requirements.txt")
     content = open(req_path).read().lower()
-    for dep in ["fastapi", "uvicorn", "pdfplumber", "openai", "nbformat"]:
+    for dep in ["fastapi", "uvicorn", "pdfplumber", "google-genai", "nbformat"]:
         assert dep in content, f"Missing dependency: {dep}"
 
 
