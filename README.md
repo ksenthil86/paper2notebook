@@ -168,3 +168,35 @@ docker compose up
 ```bash
 docker compose down   # stop and remove containers
 ```
+
+---
+
+## AWS Deployment (CI/CD)
+
+The CD workflow (`.github/workflows/cd.yml`) builds and deploys on every push to `master`.
+
+**Required GitHub repository secrets:**
+
+| Secret | Description |
+|--------|-------------|
+| `AWS_ACCESS_KEY_ID` | IAM user access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM user secret key |
+| `AWS_REGION` | e.g. `us-east-1` |
+| `AWS_ACCOUNT_ID` | 12-digit AWS account ID |
+
+**Infrastructure setup (one-time, with Terraform):**
+
+```bash
+cd terraform
+terraform init
+terraform apply
+```
+
+**Store Gemini API key in SSM (one-time):**
+
+```bash
+aws ssm put-parameter \
+  --name /paper2notebook/gemini_api_key \
+  --value "AIza..." \
+  --type SecureString
+```

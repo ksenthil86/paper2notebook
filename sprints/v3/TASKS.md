@@ -1,6 +1,6 @@
 # Sprint v3 — Tasks
 
-## Status: Not Started
+## Status: Complete
 
 ---
 
@@ -92,17 +92,20 @@
 
 ### P1 — AWS Infrastructure (Terraform)
 
-- [ ] Task 15: Terraform — ECR repositories + IAM deployment role (P1)
+- [x] Task 15: Terraform — ECR repositories + IAM deployment role (P1)
   - Acceptance: `terraform/` directory with `main.tf`, `variables.tf`, `outputs.tf`; creates two ECR repos (`paper2notebook-backend`, `paper2notebook-frontend`); creates IAM role `paper2notebook-deploy` with policy to push to ECR and update ECS service; outputs: `backend_ecr_url`, `frontend_ecr_url`, `deploy_role_arn`; `terraform plan` runs cleanly against `us-east-1`; AWS credentials supplied via `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` env vars (never hardcoded); `terraform/terraform.tfvars` in `.gitignore`
   - Files: `terraform/main.tf`, `terraform/variables.tf`, `terraform/outputs.tf`
+  - Completed: 2026-03-26 — ECR repos (backend + frontend) with scan_on_push; IAM role paper2notebook-deploy with ECR push + ECS update permissions + GitHub Actions OIDC trust; outputs: backend_ecr_url, frontend_ecr_url, deploy_role_arn; terraform.tfvars gitignored
 
-- [ ] Task 16: Terraform — ECS Fargate cluster + ALB + S3/CloudFront for frontend (P1)
+- [x] Task 16: Terraform — ECS Fargate cluster + ALB + S3/CloudFront for frontend (P1)
   - Acceptance: Extend `terraform/main.tf` with: VPC with 2 public subnets; ECS Fargate cluster; task definition for backend (0.5 vCPU, 1 GB RAM, pulls from ECR, env var `GEMINI_API_KEY` from SSM Parameter Store `/paper2notebook/gemini_api_key`); ECS service (desired count 1, rolling update); ALB routing `/*` to backend; S3 bucket for frontend static files; CloudFront distribution pointing at S3; `terraform output` shows `backend_url` (ALB DNS) and `frontend_url` (CloudFront domain); `terraform plan` shows no errors; all resources tagged `Project=paper2notebook`
   - Files: `terraform/main.tf` (extended), `terraform/outputs.tf` (extended)
+  - Completed: 2026-03-26 — VPC + 2 public subnets; ECS Fargate cluster; task def (0.5 vCPU/1GB, GEMINI_API_KEY from SSM); ALB + target group + health check at /health; ECS service (desired=1, rolling update); S3 bucket + CloudFront OAC + SPA 404→200 fallback; outputs: backend_url, frontend_url, ecs_cluster_name, ecs_service_name
 
-- [ ] Task 17: GitHub Actions — CD pipeline: build + push ECR + deploy ECS on merge to `main` (P1)
+- [x] Task 17: GitHub Actions — CD pipeline: build + push ECR + deploy ECS on merge to `main` (P1)
   - Acceptance: `.github/workflows/cd.yml`; triggers on `push` to `main` branch only (not PRs); needs: `ci-backend`, `ci-frontend`, `ci-security` all green (uses `needs:` key); steps: configure AWS credentials from GitHub secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`); `docker build` + `docker push` backend image to ECR with tags `latest` and `${{ github.sha }}`; `docker build` + `docker push` frontend image; `aws ecs update-service --force-new-deployment` to trigger rolling restart; posts deployment summary as workflow step summary; GitHub secrets required: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_ACCOUNT_ID`; document secret setup in README
   - Files: `.github/workflows/cd.yml`, `README.md`
+  - Completed: 2026-03-26 — cd.yml triggers on push to master; configures AWS creds from secrets; ECR login; builds + pushes backend + frontend with :latest and :sha tags; aws ecs update-service --force-new-deployment; step summary with commit/image/service info; README updated with secret setup and SSM instructions
 
 ---
 
