@@ -11,9 +11,10 @@
   - Files: `backend/main.py`, `tests/integration/test_generate_endpoint.py`
   - Completed: 2026-03-27 — `MAX_PDF_BYTES = 20 MB`; content-type validated against allowlist (`application/pdf`, `application/x-pdf`) before read; size check uses `read(MAX+1)` to detect overflow without loading full body; 5 new integration tests (413, boundary, 415 ×2, happy path); 91 tests green; bandit clean
 
-- [ ] Task 2: Add per-IP rate limiting on POST /generate (H2)
+- [x] Task 2: Add per-IP rate limiting on POST /generate (H2)
   - Acceptance: `slowapi` added to requirements.txt; `/generate` allows max 10 requests/minute per IP; the 11th request within a minute returns HTTP 429; tested with integration tests; `SlowAPI` limiter mounted on the FastAPI app
   - Files: `backend/main.py`, `backend/requirements.txt`, `tests/integration/test_generate_endpoint.py`
+  - Completed: 2026-03-27 — `slowapi==0.1.9` installed; `Limiter(key_func=get_remote_address)` mounted on app; `@limiter.limit("10/minute")` on `/generate`; custom 429 handler with `Retry-After: 60` header; 3 new integration tests (within limit, 11th → 429, Retry-After header); `conftest.py` added to reset limiter between tests; 94 tests green; bandit clean; pip-audit clean
 
 ---
 

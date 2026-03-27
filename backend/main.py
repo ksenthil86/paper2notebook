@@ -4,9 +4,14 @@ import asyncio
 from typing import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks, HTTPException
+from fastapi import FastAPI, File, Form, Request, UploadFile, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import JSONResponse
 
 import pipeline as _pipeline
 from job_store import get_store
@@ -16,11 +21,25 @@ _executor = ThreadPoolExecutor(max_workers=4)
 MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
 _ALLOWED_PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
 
+limiter = Limiter(key_func=get_remote_address)
+
+
+def _rate_limit_handler(request: StarletteRequest, exc: RateLimitExceeded) -> JSONResponse:
+    """Return 429 with a Retry-After header (RFC 6585 compliant)."""
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}. Try again in 60 seconds."},
+        headers={"Retry-After": "60"},
+    )
+
+
 app = FastAPI(
     title="Paper2Notebook",
     description="Convert research papers into production-quality Colab notebooks.",
     version="1.0.0",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,7 +56,9 @@ async def health() -> dict:
 
 
 @app.post("/generate", status_code=202)
+@limiter.limit("10/minute")
 async def generate(
+    request: Request,
     background_tasks: BackgroundTasks,
     api_key: str = Form(...),
     pdf_file: UploadFile = File(...),

@@ -222,3 +222,38 @@ class TestUploadValidation:
             files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
         )
         assert resp.status_code == 202
+
+
+# ── v2: Rate limiting ────────────────────────────────────────────────────────
+
+def _generate_request(client):
+    """Helper: POST a valid /generate request."""
+    return client.post(
+        "/generate",
+        data={"api_key": "sk-test"},
+        files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+    )
+
+
+class TestRateLimiting:
+
+    def test_requests_within_limit_return_202(self, client):
+        """First request is accepted (well within the 10/minute limit)."""
+        resp = _generate_request(client)
+        assert resp.status_code == 202
+
+    def test_eleventh_request_returns_429(self, client):
+        """After 10 successful requests the 11th is rate-limited (429)."""
+        for i in range(10):
+            r = _generate_request(client)
+            assert r.status_code == 202, f"Request {i+1} unexpectedly rejected: {r.status_code}"
+        resp = _generate_request(client)
+        assert resp.status_code == 429
+
+    def test_rate_limit_response_has_retry_after_header(self, client):
+        """429 response includes a Retry-After header."""
+        for _ in range(10):
+            _generate_request(client)
+        resp = _generate_request(client)
+        assert resp.status_code == 429
+        assert "retry-after" in {h.lower() for h in resp.headers}
