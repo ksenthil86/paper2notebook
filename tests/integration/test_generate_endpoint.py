@@ -313,3 +313,47 @@ class TestRateLimiting:
         resp = _generate_request(client)
         assert resp.status_code == 429
         assert "retry-after" in {h.lower() for h in resp.headers}
+
+
+# ── v3: arXiv URL input mode ──────────────────────────────────────────────────
+
+class TestArxivUrlEndpoint:
+
+    def test_arxiv_url_returns_202(self, client):
+        """POST /generate with arxiv_url (no pdf_file) returns 202 with job_id."""
+        from unittest.mock import patch
+        fake_pdf = b"%PDF-1.4 fake"
+        with patch("main.fetch_arxiv_pdf", return_value=fake_pdf):
+            resp = client.post(
+                "/generate",
+                data={"api_key": "sk-test", "arxiv_url": "https://arxiv.org/abs/1706.03762"},
+            )
+        assert resp.status_code == 202
+        assert "job_id" in resp.json()
+
+    def test_neither_pdf_nor_arxiv_returns_422(self, client):
+        """POST /generate with no pdf_file and no arxiv_url returns 422."""
+        resp = client.post("/generate", data={"api_key": "sk-test"})
+        assert resp.status_code == 422
+
+    def test_pdf_file_takes_precedence_over_arxiv_url(self, client):
+        """When both pdf_file and arxiv_url are provided, pdf_file is used (no fetch call)."""
+        from unittest.mock import patch
+        with patch("main.fetch_arxiv_pdf") as mock_fetch:
+            resp = client.post(
+                "/generate",
+                data={"api_key": "sk-test", "arxiv_url": "https://arxiv.org/abs/1706.03762"},
+                files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+            )
+        assert resp.status_code == 202
+        mock_fetch.assert_not_called()
+
+    def test_arxiv_url_fetch_failure_returns_422(self, client):
+        """If fetch_arxiv_pdf raises ValueError, endpoint returns 422."""
+        from unittest.mock import patch
+        with patch("main.fetch_arxiv_pdf", side_effect=ValueError("not a PDF")):
+            resp = client.post(
+                "/generate",
+                data={"api_key": "sk-test", "arxiv_url": "https://arxiv.org/abs/9999.99999"},
+            )
+        assert resp.status_code == 422

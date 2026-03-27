@@ -16,6 +16,7 @@ from starlette.responses import JSONResponse, Response
 
 import pipeline as _pipeline
 from job_store import get_store
+from arxiv_fetcher import fetch_arxiv_pdf
 
 _executor = ThreadPoolExecutor(max_workers=4)
 
@@ -76,19 +77,33 @@ async def generate(
     request: Request,
     background_tasks: BackgroundTasks,
     api_key: str = Form(...),
-    pdf_file: UploadFile = File(...),
+    pdf_file: UploadFile | None = File(None),
+    arxiv_url: str | None = Form(None),
     github_token: str | None = Form(None),
 ) -> dict:
-    """Accept a PDF + API key, start a background generation job, return job_id."""
-    # Content-type check (defence-in-depth; real content validated by pdf_parser)
-    content_type = (pdf_file.content_type or "").split(";")[0].strip().lower()
-    if content_type not in _ALLOWED_PDF_CONTENT_TYPES:
-        raise HTTPException(status_code=415, detail="Only PDF files are accepted (application/pdf)")
+    """Accept a PDF upload or arXiv URL, start a background generation job, return job_id."""
+    if pdf_file is not None and pdf_file.filename:
+        # ── PDF upload path ─────────────────────────────────────────────────
+        content_type = (pdf_file.content_type or "").split(";")[0].strip().lower()
+        if content_type not in _ALLOWED_PDF_CONTENT_TYPES:
+            raise HTTPException(status_code=415, detail="Only PDF files are accepted (application/pdf)")
 
-    # Size check — read one byte beyond the limit to detect oversized files
-    pdf_bytes = await pdf_file.read(MAX_PDF_BYTES + 1)
-    if len(pdf_bytes) > MAX_PDF_BYTES:
-        raise HTTPException(status_code=413, detail="PDF exceeds the 20 MB size limit")
+        pdf_bytes = await pdf_file.read(MAX_PDF_BYTES + 1)
+        if len(pdf_bytes) > MAX_PDF_BYTES:
+            raise HTTPException(status_code=413, detail="PDF exceeds the 20 MB size limit")
+
+    elif arxiv_url:
+        # ── arXiv URL path ──────────────────────────────────────────────────
+        try:
+            pdf_bytes = fetch_arxiv_pdf(arxiv_url)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide either a pdf_file upload or an arxiv_url.",
+        )
 
     store = get_store()
     job_id = store.create_job()

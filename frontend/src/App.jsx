@@ -17,8 +17,12 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false)
   const [progress, setProgress] = useState(null) // null = hidden, array = visible
   const [error, setError] = useState(null)
+  const [inputMode, setInputMode] = useState('upload') // 'upload' | 'arxiv'
+  const [arxivUrl, setArxivUrl] = useState('')
 
-  const canGenerate = apiKey.trim().length > 0 && pdfFile !== null
+  const canGenerate = apiKey.trim().length > 0 && (
+    inputMode === 'upload' ? pdfFile !== null : arxivUrl.trim().length > 0
+  )
 
   // ── File selection ──────────────────────────────────
   const handleFileChange = useCallback((e) => {
@@ -52,7 +56,11 @@ export default function App() {
 
     const formData = new FormData()
     formData.append('api_key', apiKey)
-    formData.append('pdf_file', pdfFile)
+    if (inputMode === 'upload') {
+      formData.append('pdf_file', pdfFile)
+    } else {
+      formData.append('arxiv_url', arxivUrl.trim())
+    }
     if (githubToken.trim()) formData.append('github_token', githubToken.trim())
 
     let jobId
@@ -108,7 +116,7 @@ export default function App() {
       setProgress(null)
       setError('Connection lost. Please try again.')
     }
-  }, [apiKey, pdfFile, githubToken, canGenerate])
+  }, [apiKey, pdfFile, arxivUrl, githubToken, inputMode, canGenerate])
 
   return (
     <div data-testid="app-root">
@@ -174,34 +182,66 @@ export default function App() {
             </div>
           </div>
 
-          {/* PDF drop zone */}
+          {/* Input mode tabs */}
           <div className="field-group">
-            <label className="field-label">Research Paper (PDF)</label>
-            <div
-              className={`dropzone${dragOver ? ' drag-over' : ''}`}
-              data-testid="pdf-dropzone"
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-            >
-              <input
-                data-testid="pdf-file-input"
-                type="file"
-                accept=".pdf,application/pdf"
-                className="file-input-hidden"
-                onChange={handleFileChange}
-              />
-              {pdfFile ? (
-                <span className="dropzone-filename">📄 {pdfFile.name}</span>
-              ) : (
-                <>
-                  <span className="dropzone-icon">📄</span>
-                  <span className="dropzone-text">
-                    Drop your PDF here or <strong>click to browse</strong>
-                  </span>
-                </>
-              )}
+            <label className="field-label">Research Paper</label>
+            <div className="input-mode-tabs" data-testid="input-mode-tabs">
+              <button
+                type="button"
+                className={`tab-btn${inputMode === 'upload' ? ' active' : ''}`}
+                data-testid="tab-upload"
+                onClick={() => setInputMode('upload')}
+              >
+                Upload PDF
+              </button>
+              <button
+                type="button"
+                className={`tab-btn${inputMode === 'arxiv' ? ' active' : ''}`}
+                data-testid="tab-arxiv"
+                onClick={() => setInputMode('arxiv')}
+              >
+                arXiv URL
+              </button>
             </div>
+
+            {inputMode === 'upload' ? (
+              <div
+                className={`dropzone${dragOver ? ' drag-over' : ''}`}
+                data-testid="pdf-dropzone"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <input
+                  data-testid="pdf-file-input"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="file-input-hidden"
+                  onChange={handleFileChange}
+                />
+                {pdfFile ? (
+                  <span className="dropzone-filename">📄 {pdfFile.name}</span>
+                ) : (
+                  <>
+                    <span className="dropzone-icon">📄</span>
+                    <span className="dropzone-text">
+                      Drop your PDF here or <strong>click to browse</strong>
+                    </span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <input
+                data-testid="arxiv-url-input"
+                type="url"
+                className="input"
+                placeholder="https://arxiv.org/abs/1706.03762"
+                value={arxivUrl}
+                onChange={(e) => setArxivUrl(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            )}
           </div>
 
           {/* Generate button */}

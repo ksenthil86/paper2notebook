@@ -11,9 +11,10 @@
   - Files: `backend/arxiv_fetcher.py`
   - Completed: 2026-03-27 — `fetch_arxiv_pdf()` normalises `/abs/` → `/pdf/`, validates arxiv.org domain, sends `User-Agent: paper2notebook/1.0`, sets 30s timeout, wraps all httpx exceptions as `ValueError`; 11 unit tests green (happy path, URL normalisation, version suffix, non-arXiv rejection, non-PDF response, 404, 403, timeout, User-Agent, timeout param); 133 total tests; bandit clean
 
-- [ ] Task 2: Wire arXiv URL into `/generate` endpoint and frontend (P0)
+- [x] Task 2: Wire arXiv URL into `/generate` endpoint and frontend (P0)
   - Acceptance: `POST /generate` accepts optional `arxiv_url: str` form field; if `arxiv_url` is present and `pdf_file` is absent, calls `fetch_arxiv_pdf(arxiv_url)` to get PDF bytes, then runs the normal pipeline; if both are absent returns HTTP 422; frontend `App.jsx` adds a tab toggle — "Upload PDF" (default) / "arXiv URL" — with a text input for the URL; `data-testid="arxiv-url-input"` and `data-testid="input-mode-tabs"` on the new elements
   - Files: `backend/main.py`, `frontend/src/App.jsx`
+  - Completed: 2026-03-27 — `pdf_file` made optional; `arxiv_url` form field added; fetch-then-pipeline arXiv path wired; both-absent → 422; PDF-takes-precedence when both provided; frontend tab toggle with `data-testid="input-mode-tabs"`, `tab-upload`, `tab-arxiv`, `arxiv-url-input`; `canGenerate` updated for both modes; 4 new integration tests + 8 new E2E tests all green; 137 Python + 8 E2E pass; bandit clean
 
 ---
 
