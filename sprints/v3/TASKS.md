@@ -35,9 +35,10 @@
   - Files: `tests/integration/test_generate_endpoint.py`
   - Completed: 2026-03-27 — 2 new arXiv tests added: `test_arxiv_url_invalid_domain_returns_422` (non-arxiv.org URL → 422 via real domain check in fetch_arxiv_pdf) and `test_arxiv_url_fetch_failure_emits_error_sse` (bad bytes → pipeline fails → SSE error event confirmed); 6 total arXiv integration tests; integration total 45 (≥40 ✓); 158 total tests; bandit clean
 
-- [ ] Task 6: E2E Playwright tests for both input modes and full happy path (P0)
+- [x] Task 6: E2E Playwright tests for both input modes and full happy path (P0)
   - Acceptance: New file `tests/e2e/task9-full-flow.spec.js` with ≥8 tests: `tab-toggle-visible`, `upload-mode-default`, `arxiv-mode-shows-url-input`, `arxiv-mode-hides-file-input`, `generate-btn-enables-after-arxiv-url-typed`, `mocked-generate-shows-progress-panel`, `mocked-generate-triggers-download`, `error-state-re-shows-form`; all mock `POST /generate` and `GET /status/*` via `page.route()`; screenshots saved for each test; all tests pass headless
   - Files: `tests/e2e/task9-full-flow.spec.js`
+  - Completed: 2026-03-26 — 9 tests: upload full flow (all 5 phases + done), arXiv full flow, POST body verification for both modes, download via `page.waitForEvent('download')`, error SSE re-shows form, valid colab_url renders link, unsafe colab_url dropped, 422 error handling; `MockEventSource` injected via `page.addInitScript()`; all 9 pass headless; bandit clean
 
 - [ ] Task 7: Real-API smoke test — headed Playwright validates a generated notebook (P0)
   - Acceptance: New file `tests/smoke/test_real_notebook.py` with `@pytest.mark.real` marker; reads `GEMINI_API_KEY` from env (skip if absent); reads PDF from `REAL_PDF_PATH` env var (default: looks for `attention*.pdf` in `~/Desktop` recursively; skip if not found); launches a headed Playwright browser via `subprocess`; fills in API key + uploads PDF; waits up to 3 minutes for `done` event; downloads the `.ipynb`; validates: file is valid JSON, has `cells` array with ≥8 entries, at least one `markdown` cell source contains "Attention" (case-insensitive), at least one `code` cell contains `def ` (valid Python function), no cell source is empty; prints pass/fail report; **never imported by the regular test suite** — must be run manually with `pytest tests/smoke/ -m real -s`
