@@ -5,12 +5,28 @@ live progress. On any error, an 'error' event is emitted and the pipeline
 stops immediately.
 """
 import base64
+import re
+import sys
 
 from job_store import JobStore
 from pdf_parser import extract_text
 from notebook_generator import make_client, analyze_paper, generate_cells
 from notebook_builder import build_notebook
 from gist_uploader import upload_gist
+
+# Patterns that match secret tokens which must never appear in SSE messages.
+_SECRET_PATTERNS: list[re.Pattern] = [
+    re.compile(r"ghp_[A-Za-z0-9]+"),               # GitHub classic PAT
+    re.compile(r"github_pat_[A-Za-z0-9_]+"),        # GitHub fine-grained PAT
+    re.compile(r"AIza[A-Za-z0-9_-]{5,}"),           # Google / Gemini API key
+]
+
+
+def _sanitise_error(message: str) -> str:
+    """Replace any secret token patterns in *message* with '[REDACTED]'."""
+    for pattern in _SECRET_PATTERNS:
+        message = pattern.sub("[REDACTED]", message)
+    return message
 
 
 def run_pipeline(
@@ -75,8 +91,6 @@ def run_pipeline(
         store.emit(job_id, "done", "Done! Your notebook is ready.", **done_payload)
 
     except Exception as exc:  # noqa: BLE001
-        store.emit(
-            job_id,
-            "error",
-            f"Generation failed: {type(exc).__name__}: {exc}",
-        )
+        full_message = f"Generation failed: {type(exc).__name__}: {exc}"
+        print(f"[pipeline error] job={job_id}: {full_message}", file=sys.stderr)
+        store.emit(job_id, "error", _sanitise_error(full_message))

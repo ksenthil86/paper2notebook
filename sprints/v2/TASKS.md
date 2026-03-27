@@ -20,9 +20,10 @@
 
 ### P1 — Medium severity (should fix)
 
-- [ ] Task 3: Sanitise SSE error messages — prevent token leakage (M2)
+- [x] Task 3: Sanitise SSE error messages — prevent token leakage (M2)
   - Acceptance: Any exception message emitted over SSE has GitHub PAT patterns (`ghp_[A-Za-z0-9]+`, `github_pat_[A-Za-z0-9_]+`) and Gemini key patterns (`AIza[A-Za-z0-9_-]+`) redacted with `[REDACTED]`; the full error is still written to stderr for server-side visibility; unit tests confirm redaction; the GitHub API response body (which can echo the token) is NOT forwarded verbatim
   - Files: `backend/pipeline.py`, `tests/unit/test_pipeline_sanitise.py`
+  - Completed: 2026-03-27 — `_sanitise_error()` redacts `ghp_*`, `github_pat_*`, `AIza*` patterns with `[REDACTED]`; full error still written to stderr; wired into pipeline's catch-all; 10 unit tests green (7 for `_sanitise_error` + 3 integration-style); 104 total tests green; bandit clean
 
 - [ ] Task 4: Add HTTP security headers + harden FastAPI config (M3, M4, M5)
   - Acceptance:
