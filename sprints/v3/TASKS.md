@@ -54,9 +54,10 @@
   - Files: `.github/workflows/ci-backend.yml`, `README.md`
   - Completed: 2026-03-26 — ci-backend.yml: push+PR triggers, Python 3.13, pytest unit+integration, bandit, pip-audit; badge added to README
 
-- [ ] Task 9: GitHub Actions — frontend CI workflow (Playwright headless) (P0)
+- [x] Task 9: GitHub Actions — frontend CI workflow (Playwright headless) (P0)
   - Acceptance: `.github/workflows/ci-frontend.yml`; triggers on `push` and `pull_request`; steps: checkout → Node 20 setup → `npm ci` in `frontend/` → `npx playwright install --with-deps chromium` → `npm run test:e2e` (runs `tests/e2e/`); uploads `tests/screenshots/` as artifact on failure; workflow fails if any Playwright test fails; does NOT require a running backend (all routes mocked via `page.route()`)
   - Files: `.github/workflows/ci-frontend.yml`
+  - Completed: 2026-03-26 — ci-frontend.yml: push+PR triggers, Node 20, npm ci, Playwright chromium, npm run test:e2e; uploads screenshots artifact on failure; no backend needed (all routes mocked)
 
 - [ ] Task 10: GitHub Actions — security scan workflow (semgrep + OWASP) (P0)
   - Acceptance: `.github/workflows/ci-security.yml`; triggers on `push` and `pull_request`; steps: checkout → `pip install semgrep` → `semgrep --config auto backend/ --error --quiet` (exits non-zero on findings) → `pip install pip-audit` → `pip-audit -r backend/requirements.txt` → `npm audit --audit-level=high` in `frontend/`; any finding blocks the PR; workflow runs in parallel with the test workflows (not sequentially)
