@@ -1,0 +1,61 @@
+# Credentials & secrets — NEVER commit these
+aws_cred.md
+*.env
+.env
+.env.*
+secrets/
+credentials/
+*_credentials.*
+*_cred.*
+*_secret.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.bandit
+.cache/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/build/
+.npm/
+
+# Playwright
+tests/screenshots/
+test-results/
+playwright-report/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+
+# Docker
+.docker/
