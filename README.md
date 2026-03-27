@@ -1,5 +1,7 @@
 # Paper2Notebook
 
+![Backend CI](https://github.com/senthilkumarkuppan/paper2notebook/actions/workflows/ci-backend.yml/badge.svg)
+
 Convert a research paper PDF into a production-quality Google Colab notebook in one click.
 
 Upload a PDF, enter your OpenAI API key, and receive a fully runnable `.ipynb` notebook with realistic synthetic data, rigorous algorithm implementations, LaTeX math commentary, and visualizations — powered by OpenAI's reasoning model.

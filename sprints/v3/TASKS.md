@@ -49,9 +49,10 @@
 
 ### P0 — CI/CD Pipeline
 
-- [ ] Task 8: GitHub Actions — backend CI workflow (pytest + bandit + pip-audit) (P0)
+- [x] Task 8: GitHub Actions — backend CI workflow (pytest + bandit + pip-audit) (P0)
   - Acceptance: `.github/workflows/ci-backend.yml`; triggers on `push` and `pull_request` to any branch; steps: checkout → `python 3.13` setup → `pip install -r backend/requirements.txt pytest bandit pip-audit` → `pytest tests/unit/ tests/integration/ -q` → `bandit -r backend/ -q` → `pip-audit -r backend/requirements.txt`; workflow fails if any step exits non-zero; `GEMINI_API_KEY` is NOT needed (all tests are mocked); workflow badge added to README
   - Files: `.github/workflows/ci-backend.yml`, `README.md`
+  - Completed: 2026-03-26 — ci-backend.yml: push+PR triggers, Python 3.13, pytest unit+integration, bandit, pip-audit; badge added to README
 
 - [ ] Task 9: GitHub Actions — frontend CI workflow (Playwright headless) (P0)
   - Acceptance: `.github/workflows/ci-frontend.yml`; triggers on `push` and `pull_request`; steps: checkout → Node 20 setup → `npm ci` in `frontend/` → `npx playwright install --with-deps chromium` → `npm run test:e2e` (runs `tests/e2e/`); uploads `tests/screenshots/` as artifact on failure; workflow fails if any Playwright test fails; does NOT require a running backend (all routes mocked via `page.route()`)
