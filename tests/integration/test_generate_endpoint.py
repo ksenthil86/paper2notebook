@@ -166,3 +166,59 @@ class TestStatusEndpoint:
         assert len(events) >= 1
         assert events[0]["phase"] == "parsing"
         assert events[0]["message"] == "Parsing PDF..."
+
+
+# ── v2: Upload size and content-type enforcement ─────────────────────────────
+
+MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
+
+
+class TestUploadValidation:
+
+    def test_oversized_upload_returns_413(self, client):
+        """A file exceeding 20 MB returns HTTP 413 before body is processed."""
+        oversized = b"%PDF-1.4 " + b"x" * (MAX_PDF_BYTES + 1)
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("big.pdf", io.BytesIO(oversized), "application/pdf")},
+        )
+        assert resp.status_code == 413
+
+    def test_exactly_20mb_is_accepted(self, client):
+        """A file exactly at the 20 MB limit is not rejected by the size check."""
+        exact = b"%PDF-1.4 " + b"x" * (MAX_PDF_BYTES - 9)
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("exact.pdf", io.BytesIO(exact), "application/pdf")},
+        )
+        # 202 or pipeline-error (invalid PDF content) — but NOT 413
+        assert resp.status_code != 413
+
+    def test_non_pdf_content_type_returns_415(self, client):
+        """A file uploaded with text/plain content-type returns HTTP 415."""
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("paper.txt", io.BytesIO(b"not a pdf"), "text/plain")},
+        )
+        assert resp.status_code == 415
+
+    def test_octet_stream_content_type_returns_415(self, client):
+        """application/octet-stream (generic binary) is also rejected as non-PDF."""
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("paper.bin", io.BytesIO(b"%PDF-fake"), "application/octet-stream")},
+        )
+        assert resp.status_code == 415
+
+    def test_valid_pdf_content_type_passes_validation(self, client):
+        """A properly typed application/pdf upload passes both validations."""
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test"},
+            files={"pdf_file": ("paper.pdf", io.BytesIO(_minimal_pdf_bytes()), "application/pdf")},
+        )
+        assert resp.status_code == 202

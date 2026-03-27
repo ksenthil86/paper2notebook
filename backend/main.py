@@ -13,6 +13,9 @@ from job_store import get_store
 
 _executor = ThreadPoolExecutor(max_workers=4)
 
+MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
+_ALLOWED_PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
+
 app = FastAPI(
     title="Paper2Notebook",
     description="Convert research papers into production-quality Colab notebooks.",
@@ -41,9 +44,18 @@ async def generate(
     github_token: str | None = Form(None),
 ) -> dict:
     """Accept a PDF + API key, start a background generation job, return job_id."""
+    # Content-type check (defence-in-depth; real content validated by pdf_parser)
+    content_type = (pdf_file.content_type or "").split(";")[0].strip().lower()
+    if content_type not in _ALLOWED_PDF_CONTENT_TYPES:
+        raise HTTPException(status_code=415, detail="Only PDF files are accepted (application/pdf)")
+
+    # Size check — read one byte beyond the limit to detect oversized files
+    pdf_bytes = await pdf_file.read(MAX_PDF_BYTES + 1)
+    if len(pdf_bytes) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=413, detail="PDF exceeds the 20 MB size limit")
+
     store = get_store()
     job_id = store.create_job()
-    pdf_bytes = await pdf_file.read()
 
     background_tasks.add_task(
         _run_pipeline_in_thread,
