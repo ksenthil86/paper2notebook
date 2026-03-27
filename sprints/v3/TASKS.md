@@ -6,9 +6,10 @@
 
 ### P0 — New Feature (required before testing)
 
-- [ ] Task 1: Add `arxiv_fetcher.py` — fetch PDF bytes from an arXiv URL (P0)
+- [x] Task 1: Add `arxiv_fetcher.py` — fetch PDF bytes from an arXiv URL (P0)
   - Acceptance: `fetch_arxiv_pdf("https://arxiv.org/abs/1706.03762")` returns bytes starting with `%PDF-`; normalises `/abs/` → `/pdf/`; raises `ValueError` on non-arXiv URLs; raises `ValueError` if response is not a PDF; uses `httpx` with `User-Agent: paper2notebook/1.0` and 30s timeout; no real network calls needed (mocked in tests)
   - Files: `backend/arxiv_fetcher.py`
+  - Completed: 2026-03-27 — `fetch_arxiv_pdf()` normalises `/abs/` → `/pdf/`, validates arxiv.org domain, sends `User-Agent: paper2notebook/1.0`, sets 30s timeout, wraps all httpx exceptions as `ValueError`; 11 unit tests green (happy path, URL normalisation, version suffix, non-arXiv rejection, non-PDF response, 404, 403, timeout, User-Agent, timeout param); 133 total tests; bandit clean
 
 - [ ] Task 2: Wire arXiv URL into `/generate` endpoint and frontend (P0)
   - Acceptance: `POST /generate` accepts optional `arxiv_url: str` form field; if `arxiv_url` is present and `pdf_file` is absent, calls `fetch_arxiv_pdf(arxiv_url)` to get PDF bytes, then runs the normal pipeline; if both are absent returns HTTP 422; frontend `App.jsx` adds a tab toggle — "Upload PDF" (default) / "arXiv URL" — with a text input for the URL; `data-testid="arxiv-url-input"` and `data-testid="input-mode-tabs"` on the new elements
