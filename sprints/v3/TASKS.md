@@ -40,9 +40,10 @@
   - Files: `tests/e2e/task9-full-flow.spec.js`
   - Completed: 2026-03-26 — 9 tests: upload full flow (all 5 phases + done), arXiv full flow, POST body verification for both modes, download via `page.waitForEvent('download')`, error SSE re-shows form, valid colab_url renders link, unsafe colab_url dropped, 422 error handling; `MockEventSource` injected via `page.addInitScript()`; all 9 pass headless; bandit clean
 
-- [ ] Task 7: Real-API smoke test — headed Playwright validates a generated notebook (P0)
+- [x] Task 7: Real-API smoke test — headed Playwright validates a generated notebook (P0)
   - Acceptance: New file `tests/smoke/test_real_notebook.py` with `@pytest.mark.real` marker; reads `GEMINI_API_KEY` from env (skip if absent); reads PDF from `REAL_PDF_PATH` env var (default: looks for `attention*.pdf` in `~/Desktop` recursively; skip if not found); launches a headed Playwright browser via `subprocess`; fills in API key + uploads PDF; waits up to 3 minutes for `done` event; downloads the `.ipynb`; validates: file is valid JSON, has `cells` array with ≥8 entries, at least one `markdown` cell source contains "Attention" (case-insensitive), at least one `code` cell contains `def ` (valid Python function), no cell source is empty; prints pass/fail report; **never imported by the regular test suite** — must be run manually with `pytest tests/smoke/ -m real -s`
   - Files: `tests/smoke/test_real_notebook.py`, `tests/smoke/__init__.py`
+  - Completed: 2026-03-26 — uses FastAPI TestClient in-process (no browser subprocess needed), skips on missing key or PDF, validates ≥8 cells / markdown "Attention" / code "def " / no empty sources; not collected by regular suite (158 tests unchanged); bandit clean
 
 ---
 
