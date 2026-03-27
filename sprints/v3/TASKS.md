@@ -20,13 +20,15 @@
 
 ### P0 — Testing Pyramid
 
-- [ ] Task 3: Unit tests for `arxiv_fetcher` module (P0)
+- [x] Task 3: Unit tests for `arxiv_fetcher` module (P0)
   - Acceptance: `tests/unit/test_arxiv_fetcher.py` with ≥8 tests covering: happy path (200 response, PDF bytes returned), non-arXiv URL rejection, `/abs/` → `/pdf/` normalisation, `/abs/` → `/pdf/` with version suffix (e.g. `v2`), non-PDF content-type rejection, HTTP 404 → ValueError, HTTP 403 → ValueError, network timeout → ValueError; all using `unittest.mock.patch` on `httpx.get` — no real network calls
   - Files: `tests/unit/test_arxiv_fetcher.py`
+  - Completed: 2026-03-27 — 11 tests written as part of Task 1 (happy path, URL normalisation, version suffix, non-arXiv rejection, non-PDF response, 404, 403, timeout, User-Agent, timeout param, direct PDF URL); all pass; already committed
 
-- [ ] Task 4: Fill unit test coverage gaps across existing backend modules (P0)
+- [x] Task 4: Fill unit test coverage gaps across existing backend modules (P0)
   - Acceptance: Add `tests/unit/test_pipeline_edges.py` with ≥10 new tests covering: `run_pipeline` with arXiv URL path (mocked `fetch_arxiv_pdf`), `JobStore` concurrent emit from two threads (no data corruption), `_evict_expired` with zero jobs, `build_notebook` with empty cell list returns valid nbformat, `build_notebook` with only markdown cells (no pip inject), `pdf_parser.extract_text` with single-page PDF, `gist_uploader` with Unicode notebook content, `notebook_generator._strip_json_fences` with nested braces, `analyze_paper` propagates ValueError on all-model-failure, `generate_cells` rejects non-list JSON response; total unit test count reaches ≥100
   - Files: `tests/unit/test_pipeline_edges.py`
+  - Completed: 2026-03-27 — 19 tests in `test_pipeline_edges.py` covering: `_strip_json_fences` (5 cases incl. nested braces), `_call_with_fallback` all-models-fail + fallback-to-second-model, `generate_cells` non-list rejection, `analyze_paper` invalid-JSON, `build_notebook` empty list / markdown-only / no-duplicate-pip / utf8-bytes, `JobStore` concurrent-emit (100 events, no corruption) / evict-zero / delete-nonexistent, `pdf_parser` empty-bytes + non-PDF, `gist_uploader` Unicode; total unit tests: 113 (≥100 ✓); 156 total tests; bandit clean
 
 - [ ] Task 5: Integration tests for arXiv URL input mode (P0)
   - Acceptance: Add tests to `tests/integration/test_generate_endpoint.py`: `test_arxiv_url_returns_202` (posts `arxiv_url` with mocked `fetch_arxiv_pdf`, expects 202 + job_id); `test_arxiv_url_and_pdf_both_absent_returns_422`; `test_arxiv_url_fetch_failure_emits_error_sse` (fetch raises ValueError, verify SSE error event); `test_arxiv_url_invalid_url_returns_422` (non-arXiv URL format); mocked via `unittest.mock.patch("main.fetch_arxiv_pdf")`; total integration count reaches ≥40
