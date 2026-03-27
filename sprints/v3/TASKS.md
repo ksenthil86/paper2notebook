@@ -59,9 +59,10 @@
   - Files: `.github/workflows/ci-frontend.yml`
   - Completed: 2026-03-26 — ci-frontend.yml: push+PR triggers, Node 20, npm ci, Playwright chromium, npm run test:e2e; uploads screenshots artifact on failure; no backend needed (all routes mocked)
 
-- [ ] Task 10: GitHub Actions — security scan workflow (semgrep + OWASP) (P0)
+- [x] Task 10: GitHub Actions — security scan workflow (semgrep + OWASP) (P0)
   - Acceptance: `.github/workflows/ci-security.yml`; triggers on `push` and `pull_request`; steps: checkout → `pip install semgrep` → `semgrep --config auto backend/ --error --quiet` (exits non-zero on findings) → `pip install pip-audit` → `pip-audit -r backend/requirements.txt` → `npm audit --audit-level=high` in `frontend/`; any finding blocks the PR; workflow runs in parallel with the test workflows (not sequentially)
   - Files: `.github/workflows/ci-security.yml`
+  - Completed: 2026-03-26 — ci-security.yml: push+PR triggers, semgrep --config auto, pip-audit, npm audit --audit-level=high; runs in parallel with other CI workflows
 
 - [ ] Task 11: Push repo to GitHub and configure branch protection via `gh` CLI (P0)
   - Acceptance: `gh repo create paper2notebook --private --source=. --push` (or `gh repo create --public` if preferred) creates the remote and pushes all commits; `gh api` call sets branch protection on `main`: require status checks (`ci-backend`, `ci-frontend`, `ci-security`), require 1 approving review, disallow force-push; all three CI workflows are listed as required status checks so merge is blocked until green; local `git remote -v` shows the new GitHub remote

@@ -1,0 +1,36 @@
+name: Security Scan
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  scan:
+    name: semgrep + pip-audit + npm audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install semgrep and pip-audit
+        run: pip install semgrep pip-audit
+
+      - name: Semgrep static analysis
+        run: semgrep --config auto backend/ --error --quiet
+
+      - name: pip-audit dependency scan
+        run: pip-audit -r backend/requirements.txt
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: npm audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
