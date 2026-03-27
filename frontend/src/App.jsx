@@ -89,7 +89,7 @@ export default function App() {
           a.click()
           URL.revokeObjectURL(url)
         }
-        if (colab_url) {
+        if (colab_url && colab_url.startsWith('https://colab.research.google.com/')) {
           setProgress((prev) => [...(prev || []), { phase: 'colab', colab_url }])
         }
       } else if (phase === 'error') {

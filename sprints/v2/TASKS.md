@@ -43,8 +43,9 @@
 
 ### P2 — Low severity + housekeeping
 
-- [ ] Task 6: TTL job eviction (45 min) + colab_url frontend validation (L1 + housekeeping)
+- [x] Task 6: TTL job eviction (45 min) + colab_url frontend validation (L1 + housekeeping)
   - Acceptance:
     - `JobStore` launches a background daemon thread on init that runs every 5 minutes, deleting jobs older than 45 minutes; jobs store their `created_at` timestamp; 2 unit tests confirm eviction timing
     - Frontend `App.jsx` validates `colab_url.startsWith("https://colab.research.google.com/")` before rendering the `<a>` link; invalid URLs are silently dropped; 1 unit-style check in the E2E spec confirms only safe URLs produce the link
   - Files: `backend/job_store.py`, `frontend/src/App.jsx`, `tests/unit/test_job_store_ttl.py`, `tests/e2e/task7-ui.spec.js`
+  - Completed: 2026-03-26 — `JobStore` restructured to store `{"created_at": float, "events": [...]}` per job; `_evict_expired()` removes jobs older than 45 min; daemon thread runs every 5 min; 5 TTL unit tests green; `App.jsx` guards `colab_url.startsWith("https://colab.research.google.com/")` before rendering link; E2E `task6-colab-url` test confirms safe/unsafe URL filtering; `tests/e2e/node_modules/@playwright` symlinked to fix module resolution; 122 Python + 13 E2E tests green; bandit clean
