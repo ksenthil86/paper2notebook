@@ -10,8 +10,9 @@ from fastapi.responses import StreamingResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 import pipeline as _pipeline
 from job_store import get_store
@@ -22,6 +23,17 @@ MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
 _ALLOWED_PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
 
 limiter = Limiter(key_func=get_remote_address)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add standard security headers to every response (M3)."""
+
+    async def dispatch(self, request: StarletteRequest, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
 
 
 def _rate_limit_handler(request: StarletteRequest, exc: RateLimitExceeded) -> JSONResponse:
@@ -37,16 +49,19 @@ app = FastAPI(
     title="Paper2Notebook",
     description="Convert research papers into production-quality Colab notebooks.",
     version="1.0.0",
+    docs_url=None,       # M4: disable Swagger UI
+    redoc_url=None,      # M4: disable ReDoc
+    openapi_url=None,    # M4: disable /openapi.json schema endpoint
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
-
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],        # M5: only what the app needs
+    allow_headers=["Content-Type"],       # M5: only what the app needs
 )
 
 

@@ -224,6 +224,62 @@ class TestUploadValidation:
         assert resp.status_code == 202
 
 
+# ── v2: Security headers + FastAPI hardening (M3, M4, M5) ───────────────────
+
+class TestSecurityHeaders:
+
+    def test_x_content_type_options_nosniff(self, client):
+        """Every response must include X-Content-Type-Options: nosniff."""
+        resp = client.get("/health")
+        assert resp.headers.get("x-content-type-options") == "nosniff"
+
+    def test_x_frame_options_deny(self, client):
+        """Every response must include X-Frame-Options: DENY."""
+        assert client.get("/health").headers.get("x-frame-options") == "DENY"
+
+    def test_referrer_policy(self, client):
+        """Every response must include Referrer-Policy."""
+        val = client.get("/health").headers.get("referrer-policy", "")
+        assert val == "strict-origin-when-cross-origin"
+
+    def test_docs_url_disabled(self, client):
+        """GET /docs must return 404 (docs disabled in production)."""
+        assert client.get("/docs").status_code == 404
+
+    def test_redoc_url_disabled(self, client):
+        """GET /redoc must return 404."""
+        assert client.get("/redoc").status_code == 404
+
+    def test_openapi_json_disabled(self, client):
+        """GET /openapi.json must return 404."""
+        assert client.get("/openapi.json").status_code == 404
+
+    def test_cors_allows_get_and_post(self, client):
+        """Preflight for GET and POST from allowed origin succeeds."""
+        for method in ("GET", "POST"):
+            resp = client.options(
+                "/health",
+                headers={
+                    "Origin": "http://localhost:5173",
+                    "Access-Control-Request-Method": method,
+                },
+            )
+            assert resp.status_code in (200, 204)
+
+    def test_cors_blocks_arbitrary_method(self, client):
+        """Preflight for DELETE is not in the allowed methods list."""
+        resp = client.options(
+            "/health",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "DELETE",
+            },
+        )
+        # The browser will see no Access-Control-Allow-Methods: DELETE
+        allow = resp.headers.get("access-control-allow-methods", "")
+        assert "DELETE" not in allow
+
+
 # ── v2: Rate limiting ────────────────────────────────────────────────────────
 
 def _generate_request(client):
