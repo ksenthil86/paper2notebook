@@ -64,9 +64,10 @@
   - Files: `.github/workflows/ci-security.yml`
   - Completed: 2026-03-26 — ci-security.yml: push+PR triggers, semgrep --config auto, pip-audit, npm audit --audit-level=high; runs in parallel with other CI workflows
 
-- [ ] Task 11: Push repo to GitHub and configure branch protection via `gh` CLI (P0)
+- [x] Task 11: Push repo to GitHub and configure branch protection via `gh` CLI (P0)
   - Acceptance: `gh repo create paper2notebook --private --source=. --push` (or `gh repo create --public` if preferred) creates the remote and pushes all commits; `gh api` call sets branch protection on `main`: require status checks (`ci-backend`, `ci-frontend`, `ci-security`), require 1 approving review, disallow force-push; all three CI workflows are listed as required status checks so merge is blocked until green; local `git remote -v` shows the new GitHub remote
   - Files: No code files — git/GitHub config only
+  - Completed: 2026-03-26 — pushed to github.com/ksenthil86/paper2notebook (made public to enable branch protection on free plan); branch protection on master: 3 required status checks (ci-backend, ci-frontend, ci-security), 1 approving review, no force-push, no deletions
 
 ---
 
