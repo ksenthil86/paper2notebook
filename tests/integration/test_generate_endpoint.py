@@ -357,3 +357,42 @@ class TestArxivUrlEndpoint:
                 data={"api_key": "sk-test", "arxiv_url": "https://arxiv.org/abs/9999.99999"},
             )
         assert resp.status_code == 422
+
+    def test_arxiv_url_invalid_domain_returns_422(self, client):
+        """A non-arxiv.org URL is rejected with 422 (fetch_arxiv_pdf raises ValueError for wrong domain)."""
+        resp = client.post(
+            "/generate",
+            data={"api_key": "sk-test", "arxiv_url": "https://evil.com/abs/1706.03762"},
+        )
+        assert resp.status_code == 422
+        body = resp.json()
+        assert "detail" in body
+
+    def test_arxiv_url_fetch_failure_emits_error_sse(self, client):
+        """When arXiv PDF bytes reach the pipeline but PDF is invalid, SSE emits an error event."""
+        from unittest.mock import patch
+        # Return bytes that look like a valid response but are NOT a valid PDF
+        # (missing %PDF- header → pdf_parser raises ValueError → pipeline emits error SSE)
+        bad_bytes = b"not-a-pdf-at-all fake content here"
+        with patch("main.fetch_arxiv_pdf", return_value=bad_bytes):
+            resp = client.post(
+                "/generate",
+                data={"api_key": "sk-test", "arxiv_url": "https://arxiv.org/abs/1706.03762"},
+            )
+        assert resp.status_code == 202
+        job_id = resp.json()["job_id"]
+
+        # Stream SSE events and verify an error event is eventually emitted
+        error_events = []
+        with client.stream("GET", f"/status/{job_id}") as stream_resp:
+            for line in stream_resp.iter_lines():
+                if line.startswith("data:"):
+                    event = json.loads(line[len("data:"):].strip())
+                    if event.get("phase") == "error":
+                        error_events.append(event)
+                        break
+                    if event.get("phase") == "done":
+                        break
+
+        assert len(error_events) == 1, "Expected exactly one error SSE event"
+        assert "message" in error_events[0]

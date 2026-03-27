@@ -30,9 +30,10 @@
   - Files: `tests/unit/test_pipeline_edges.py`
   - Completed: 2026-03-27 — 19 tests in `test_pipeline_edges.py` covering: `_strip_json_fences` (5 cases incl. nested braces), `_call_with_fallback` all-models-fail + fallback-to-second-model, `generate_cells` non-list rejection, `analyze_paper` invalid-JSON, `build_notebook` empty list / markdown-only / no-duplicate-pip / utf8-bytes, `JobStore` concurrent-emit (100 events, no corruption) / evict-zero / delete-nonexistent, `pdf_parser` empty-bytes + non-PDF, `gist_uploader` Unicode; total unit tests: 113 (≥100 ✓); 156 total tests; bandit clean
 
-- [ ] Task 5: Integration tests for arXiv URL input mode (P0)
+- [x] Task 5: Integration tests for arXiv URL input mode (P0)
   - Acceptance: Add tests to `tests/integration/test_generate_endpoint.py`: `test_arxiv_url_returns_202` (posts `arxiv_url` with mocked `fetch_arxiv_pdf`, expects 202 + job_id); `test_arxiv_url_and_pdf_both_absent_returns_422`; `test_arxiv_url_fetch_failure_emits_error_sse` (fetch raises ValueError, verify SSE error event); `test_arxiv_url_invalid_url_returns_422` (non-arXiv URL format); mocked via `unittest.mock.patch("main.fetch_arxiv_pdf")`; total integration count reaches ≥40
   - Files: `tests/integration/test_generate_endpoint.py`
+  - Completed: 2026-03-27 — 2 new arXiv tests added: `test_arxiv_url_invalid_domain_returns_422` (non-arxiv.org URL → 422 via real domain check in fetch_arxiv_pdf) and `test_arxiv_url_fetch_failure_emits_error_sse` (bad bytes → pipeline fails → SSE error event confirmed); 6 total arXiv integration tests; integration total 45 (≥40 ✓); 158 total tests; bandit clean
 
 - [ ] Task 6: E2E Playwright tests for both input modes and full happy path (P0)
   - Acceptance: New file `tests/e2e/task9-full-flow.spec.js` with ≥8 tests: `tab-toggle-visible`, `upload-mode-default`, `arxiv-mode-shows-url-input`, `arxiv-mode-hides-file-input`, `generate-btn-enables-after-arxiv-url-typed`, `mocked-generate-shows-progress-panel`, `mocked-generate-triggers-download`, `error-state-re-shows-form`; all mock `POST /generate` and `GET /status/*` via `page.route()`; screenshots saved for each test; all tests pass headless
