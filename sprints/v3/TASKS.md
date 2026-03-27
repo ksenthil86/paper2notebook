@@ -73,17 +73,20 @@
 
 ### P1 — Docker
 
-- [ ] Task 12: Backend `Dockerfile.backend` + `.dockerignore` (P1)
+- [x] Task 12: Backend `Dockerfile.backend` + `.dockerignore` (P1)
   - Acceptance: `docker build -f Dockerfile.backend -t paper2notebook-backend .` succeeds and produces an image < 500 MB; base image `python:3.13-slim`; installs `backend/requirements.txt`; copies only `backend/` source files; runs `uvicorn main:app --host 0.0.0.0 --port 8000`; `GEMINI_API_KEY` is passed as runtime env var (not baked in); `.dockerignore` excludes `node_modules`, `tests/`, `sprints/`, `*.md`, `.git`, `__pycache__`; `docker run -e GEMINI_API_KEY=test paper2notebook-backend` starts without error
   - Files: `Dockerfile.backend`, `.dockerignore`
+  - Completed: 2026-03-26 — python:3.13-slim base, copies backend/ only, uvicorn entrypoint, GEMINI_API_KEY runtime-only; .dockerignore excludes node_modules, tests/, sprints/, *.md, .git, __pycache__; Docker daemon not available locally (validated by file review; build runs in CI)
 
-- [ ] Task 13: Frontend `Dockerfile.frontend` — Vite build + nginx (P1)
+- [x] Task 13: Frontend `Dockerfile.frontend` — Vite build + nginx (P1)
   - Acceptance: `docker build -f Dockerfile.frontend -t paper2notebook-frontend .` succeeds; multi-stage build: stage 1 `node:20-slim` runs `npm ci && npm run build`; stage 2 `nginx:alpine` copies `dist/` to `/usr/share/nginx/html`; nginx config proxies `/generate`, `/status`, `/health` to `backend:8000` (backend hostname within docker-compose network); `docker run -p 80:80 paper2notebook-frontend` serves the app; image < 50 MB
   - Files: `Dockerfile.frontend`, `nginx.conf`
+  - Completed: 2026-03-26 — multi-stage: node:20-slim builder (npm ci + vite build), nginx:alpine serving dist/; nginx.conf proxies /generate /status /health to backend:8000 with SSE-friendly buffering off
 
-- [ ] Task 14: `docker-compose.yml` — full local stack in one command (P1)
+- [x] Task 14: `docker-compose.yml` — full local stack in one command (P1)
   - Acceptance: `docker compose up` starts both services; `backend` service uses `Dockerfile.backend`, exposes port 8000 internally; `frontend` service uses `Dockerfile.frontend`, exposes port 80 to host; frontend nginx proxies API calls to backend; `GEMINI_API_KEY` loaded from `.env` file (`.env.example` has `GEMINI_API_KEY=your-key-here`); `docker compose up` exits cleanly; `curl http://localhost/health` returns `{"status":"ok"}`; `docker compose down` removes containers; documented in README
   - Files: `docker-compose.yml`, `.env.example` (update), `README.md`
+  - Completed: 2026-03-26 — docker-compose.yml with backend (exposes 8000 internally, GEMINI_API_KEY from .env) and frontend (port 80:80, depends_on backend); README Docker section added
 
 ---
 

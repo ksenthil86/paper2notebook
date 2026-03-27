@@ -148,3 +148,23 @@ python3 -m pytest ../tests/ -v
 cd frontend
 npm run test:e2e
 ```
+
+---
+
+## Docker (local stack)
+
+Requires Docker and Docker Compose.
+
+```bash
+cp .env.example .env
+# Add your GEMINI_API_KEY to .env
+
+docker compose up
+```
+
+- Frontend: http://localhost
+- Backend health: http://localhost/health
+
+```bash
+docker compose down   # stop and remove containers
+```
